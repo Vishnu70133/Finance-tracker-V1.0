@@ -1,0 +1,115 @@
+/* ───────── Root Layout ───────── */
+.profile-root {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #0b1220, #06080f 70%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px 20px;
+  color: #e6edf3;
+}
+
+/* ───────── Card ───────── */
+.profile-card {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(18, 24, 38, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.4);
+  animation: fadeUp .4s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.profile-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* ───────── Form ───────── */
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-input {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 12px;
+  color: #fff;
+  outline: none;
+  transition: .2s;
+}
+
+.profile-input:focus {
+  border-color: #00e5a0;
+  box-shadow: 0 0 0 2px rgba(0,229,160,0.2);
+}
+
+/* ───────── Buttons ───────── */
+.profile-update-btn {
+  margin-top: 10px;
+  background: linear-gradient(90deg,#00e5a0,#00c78c);
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #001a13;
+  transition: .2s;
+}
+
+.profile-update-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(0,229,160,0.4);
+}
+
+.profile-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  margin: 20px 0;
+}
+
+/* ───────── Danger Zone ───────── */
+.profile-delete-btn {
+  background: rgba(255,92,106,0.1);
+  border: 1px solid rgba(255,92,106,0.4);
+  color: #ff5c6a;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.profile-delete-btn:hover {
+  background: rgba(255,92,106,0.2);
+}
+
+/* ───────── Back Button ───────── */
+.profile-back-btn {
+  margin-bottom: 14px;
+  background: transparent;
+  border: none;
+  color: #9aa4b2;
+  cursor: pointer;
+  margin-left: auto;
+  display: block;
+}
+
+.profile-back-btn:hover {
+  color: #00e5a0;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

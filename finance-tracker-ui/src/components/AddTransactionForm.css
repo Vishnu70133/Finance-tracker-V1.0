@@ -1,0 +1,206 @@
+.atf-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.atf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.atf-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.atf-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.atf-close:hover {
+  color: var(--text-primary);
+}
+
+.atf-form {
+  padding: 24px;
+}
+
+.atf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.atf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.atf-field-full {
+  grid-column: 1 / -1;
+}
+
+.atf-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.atf-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.atf-input::placeholder {
+  color: var(--text-muted);
+}
+
+.atf-input:focus {
+  border-color: #00e5a040;
+  box-shadow: 0 0 0 3px #00e5a010;
+}
+
+.atf-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+}
+
+/* ─── Type Toggle ──────────────────────────────────── */
+.atf-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.atf-toggle-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border-accent);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+.atf-toggle-expense.active {
+  background: var(--red-dim);
+  border-color: #ff5c6a35;
+  color: var(--red);
+}
+
+.atf-toggle-income.active {
+  background: var(--green-dim);
+  border-color: #00e5a035;
+  color: var(--green);
+}
+
+/* ─── Error ────────────────────────────────────────── */
+.atf-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  background: var(--red-dim);
+  border: 1px solid #ff5c6a25;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  color: var(--red);
+}
+
+/* ─── Actions ──────────────────────────────────────── */
+.atf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.atf-btn-cancel {
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.atf-btn-cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.atf-btn-submit {
+  padding: 9px 22px;
+  background: var(--green);
+  color: #0a0c10;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+}
+
+.atf-btn-submit:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.atf-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.atf-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #0a0c1050;
+  border-top-color: #0a0c10;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .atf-grid { grid-template-columns: 1fr; }
+}

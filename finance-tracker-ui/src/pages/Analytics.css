@@ -1,0 +1,16 @@
+.analytics-root{
+  padding:24px;
+}
+
+.analytics-title{
+  color:#e6edf3;
+  font-size:22px;
+  margin-bottom:16px;
+}
+
+.analytics-card{
+  background:#0f1624;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.35);
+}
