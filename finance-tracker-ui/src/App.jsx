@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Analytics from './pages/Analytics'
-
+import AiAssistantPage from "./pages/AiAssistantPage"
 // ─── Protected Route Guard ────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -15,8 +15,16 @@ function ProtectedRoute({ children }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <BrowserRouter>
+    
       <Routes>
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute>
+              <AiAssistantPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/analytics" element={<Analytics/>}/>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
@@ -33,6 +41,6 @@ export default function App() {
         {/* Default redirect */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </BrowserRouter>
+  
   )
 }

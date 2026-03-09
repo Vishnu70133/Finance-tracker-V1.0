@@ -24,10 +24,23 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+
+    const status = error.response?.status
+
+    console.log("API ERROR STATUS:", status)
+    console.log("API ERROR URL:", error.config?.url)
+    console.log("API ERROR DATA:", error.response?.data)
+
+    // Token expired or invalid
+    if (status === 401 || status === 403) {
+
+      console.warn("Authentication expired. Redirecting to login...")
+
+      localStorage.removeItem("token")
+
+      window.location.href = "/login"
     }
+
     return Promise.reject(error)
   }
 )

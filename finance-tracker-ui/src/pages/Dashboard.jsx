@@ -236,6 +236,7 @@ const totalExpense = summary.totalExpense || 0
   <h2 className="dash-section-title">Expenses by Category</h2>
   <CategoryPieChart data={categoryStats} />
 </div>
+
         {/* Add Transaction Form */}
         {showForm && (
           <div className="dash-form-wrapper animate-fade-up">
@@ -267,11 +268,11 @@ const totalExpense = summary.totalExpense || 0
           )}
 
           <TransactionTable
-  transactions={transactions}
-  loading={loading}
-  onEdit={handleEdit}
-  onDelete={handleDelete}
-/>
+            transactions={transactions}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
 
           {/* Pagination */}
           <div className="dash-pagination">
@@ -293,6 +294,14 @@ const totalExpense = summary.totalExpense || 0
           </div>
         </div>
       </main>
+      {/* ✅ AI Bubble */}
+    <div
+      className="ai-bubble"
+      onClick={() => navigate("/ai")}
+    >
+      💬
     </div>
+    </div>
+    
   )
 }
