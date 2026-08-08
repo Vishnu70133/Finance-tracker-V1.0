@@ -254,11 +254,19 @@ public Object queryFinance(@RequestBody Map<String, Object> request) {
             break;
 
         case "HIGHEST_CATEGORY":
-            response = transactionService.getHighestCategoryLastMonth(email);
+            response = transactionService.getHighestCategory(
+                    email,
+                    query.getTimePeriod(),
+                    query.getDate()
+            );
             break;
 
         case "LOWEST_CATEGORY":
-            response = transactionService.getLowestCategoryLastMonth(email);
+            response = transactionService.getLowestCategory(
+                    email,
+                    query.getTimePeriod(),
+                    query.getDate()
+            );
             break;
 
         case "FILTER_AMOUNT":

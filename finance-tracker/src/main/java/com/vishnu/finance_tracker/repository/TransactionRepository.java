@@ -76,6 +76,23 @@ LIMIT 1
 """)
 String getHighestCategory(@Param("userId") Long userId);
 
+@Query("""
+SELECT t.category.name
+FROM Transaction t
+WHERE t.user.id = :userId
+AND t.type = 'EXPENSE'
+AND t.deleted = false
+AND t.date BETWEEN :start AND :end
+GROUP BY t.category.name
+ORDER BY SUM(t.amount) DESC
+LIMIT 1
+""")
+String getHighestCategoryInDateRange(
+        @Param("userId") Long userId,
+        @Param("start") LocalDate start,
+        @Param("end") LocalDate end
+);
+
 List<Transaction> findByUserIdAndTypeAndDeletedFalseOrderByAmountAsc(
         Long userId,
         String type
@@ -102,6 +119,23 @@ ORDER BY SUM(t.amount) ASC
 LIMIT 1
 """)
 String getLowestCategory(@Param("userId") Long userId);
+
+@Query("""
+SELECT t.category.name
+FROM Transaction t
+WHERE t.user.id = :userId
+AND t.type = 'EXPENSE'
+AND t.deleted = false
+AND t.date BETWEEN :start AND :end
+GROUP BY t.category.name
+ORDER BY SUM(t.amount) ASC
+LIMIT 1
+""")
+String getLowestCategoryInDateRange(
+        @Param("userId") Long userId,
+        @Param("start") LocalDate start,
+        @Param("end") LocalDate end
+);
 
 Transaction findTopByUserIdAndTypeAndDeletedFalseAndDateBetweenOrderByAmountDesc(
         Long userId,

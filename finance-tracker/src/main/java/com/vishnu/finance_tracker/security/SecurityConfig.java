@@ -23,9 +23,11 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
         .cors(cors -> {}) // ✅ VERY IMPORTANT
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/ml/**").permitAll()
             .requestMatchers("/auth/**").permitAll()
             .requestMatchers("/users").permitAll()
              .requestMatchers("/api/ai/**").permitAll() 
+             
             .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // ✅ allow preflight
             .anyRequest().authenticated()
         );

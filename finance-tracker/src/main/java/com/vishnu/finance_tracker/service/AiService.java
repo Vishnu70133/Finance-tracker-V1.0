@@ -17,7 +17,7 @@ import com.vishnu.finance_tracker.repository.UserRepository;
 @Service
 public class AiService {
 
-    @Autowired
+@Autowired
 private ChatMessageRepository chatMessageRepository;
 
 @Autowired
@@ -117,10 +117,33 @@ User: Which category did I spend the most on last month?
  "timePeriod":"last_month"
 }}
 
+User: Which category did I spend the most on this year?
+{{
+ "intent":"HIGHEST_CATEGORY",
+ "timePeriod":"this_year"
+}}
+
+User: Which category did I spend the most this month?
+{{
+ "intent":"HIGHEST_CATEGORY",
+ "timePeriod":"this_month"
+}}
+
+User: Which category did I spend the most?
+{{
+ "intent":"HIGHEST_CATEGORY"
+}}
+
 User: Which category did I spend the least on last month?
 {{
  "intent":"LOWEST_CATEGORY",
  "timePeriod":"last_month"
+}}
+
+User: Which category did I spend the least on this year?
+{{
+ "intent":"LOWEST_CATEGORY",
+ "timePeriod":"this_year"
 }}
 
 User: Show expenses greater than 1000
@@ -273,7 +296,8 @@ Rules for transactions:
 - Extract description if mentioned
 - Extract date if mentioned
 - Extract type (EXPENSE or INCOME)
-- If date is relative (today, yesterday), convert to ISO date
+- If date is relative (today, yesterday, tomorrow), return the relative term itself (e.g. "today", "yesterday", "tomorrow") in the "date" field.
+- If date is an absolute date (e.g. "March 10 2026", "2026-03-10"), convert to ISO format "YYYY-MM-DD" and return in the "date" field.
 - If description exists in phrases like "for lunch", "for movie", "for groceries", extract it
 - If information is missing, leave fields null
 
@@ -285,7 +309,7 @@ User: Add an expense of 500 for food today
  "amount":500,
  "category":"food",
  "type":"EXPENSE",
- "date":"2026-03-06"
+ "date":"today"
 }}
 
 User: Add 2000 income for salary
@@ -310,7 +334,7 @@ User: Update my food expense yesterday to 800
  "category":"food",
  "amount":800,
  "type":"EXPENSE",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
 
 User: Update entertainment expense on Feb 24 to 2000
@@ -327,7 +351,7 @@ User: Delete my health expense from yesterday
  "intent":"DELETE_TRANSACTION",
  "category":"health",
  "type":"EXPENSE",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
 
 User: Delete food expense on Feb 24
@@ -343,7 +367,7 @@ User: Delete food expense on Feb 24
  "category":"food",
  "type":"EXPENSE",
  "description":"lunch",
- "date":"2026-03-06"
+ "date":"today"
 }}
 
 User: Add 300 entertainment expense yesterday for movie
@@ -353,7 +377,7 @@ User: Add 300 entertainment expense yesterday for movie
  "category":"entertainment",
  "type":"EXPENSE",
  "description":"movie",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
 
 User: Add 2000 salary income today for freelance work
@@ -363,7 +387,7 @@ User: Add 2000 salary income today for freelance work
  "category":"salary",
  "type":"INCOME",
  "description":"freelance work",
- "date":"2026-03-06"
+ "date":"today"
 }}
  User: Update my food expense yesterday to 800 for lunch
 {{
@@ -372,7 +396,7 @@ User: Add 2000 salary income today for freelance work
  "amount":800,
  "type":"EXPENSE",
  "description":"lunch",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
  User: Update entertainment expense on Feb 24 to 2000 for movie
 {{
@@ -390,7 +414,7 @@ User: Add 2000 salary income today for freelance work
  "amount":500,
  "type":"EXPENSE",
  "description":"hospital checkup",
- "date":"2026-03-06"
+ "date":"today"
 }}
  User: Update my food expense yesterday to 700
 {{
@@ -398,14 +422,14 @@ User: Add 2000 salary income today for freelance work
  "category":"food",
  "amount":700,
  "type":"EXPENSE",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
  User: Delete my food expense yesterday
 {{
  "intent":"DELETE_TRANSACTION",
  "category":"food",
  "type":"EXPENSE",
- "date":"2026-03-05"
+ "date":"yesterday"
 }}
  User: Delete entertainment expense on Feb 24
 {{
@@ -419,7 +443,7 @@ User: Add 2000 salary income today for freelance work
  "intent":"DELETE_TRANSACTION",
  "category":"health",
  "type":"EXPENSE",
- "date":"2026-03-06"
+ "date":"today"
 }}
  User: Analyze my spending
 {{
@@ -447,20 +471,20 @@ public String generalChat(Long sessionId, String question){
     String context = buildConversationContext(sessionId);
 
     String prompt = """
-You are a helpful AI assistant for a personal finance tracker application.
+        You are a helpful AI assistant for a personal finance tracker application.
 
-Capabilities:
-• Answer finance related questions
-• Help with budgeting and saving advice
-• Answer general knowledge questions
-• Explain financial concepts simply
+        Capabilities:
+        • Answer finance related questions
+        • Help with budgeting and saving advice
+        • Answer general knowledge questions
+        • Explain financial concepts simply
 
-Guidelines:
-• Use the previous conversation context if relevant.
-• Answer clearly and concisely.
-• Respond in natural language.
-• Do NOT return JSON unless explicitly requested.
-""";
+        Guidelines:
+        • Use the previous conversation context if relevant.
+        • Answer clearly and concisely.
+        • Respond in natural language.
+        • Do NOT return JSON unless explicitly requested.
+        """;
 
     String response = chatClient
             .prompt()

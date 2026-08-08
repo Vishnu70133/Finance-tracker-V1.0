@@ -436,20 +436,112 @@ public String getExpensesSorted(String email, String order) {
     return response.toString();
 }
 public String getHighestCategoryLastMonth(String email) {
-
-    User user = userRepository.findByEmail(email);
-
-    String category = transactionRepository.getHighestCategory(user.getId());
-
-    return "Your highest spending category last month was " + category + ".";
+    return getHighestCategory(email, "last_month", null);
 }
 public String getLowestCategoryLastMonth(String email) {
+    return getLowestCategory(email, "last_month", null);
+}
 
+public String getHighestCategory(String email, String timePeriod, String date) {
     User user = userRepository.findByEmail(email);
+    LocalDate[] range = resolveDateRange(timePeriod, date);
+    LocalDate start = range[0];
+    LocalDate end = range[1];
 
-    String category = transactionRepository.getLowestCategory(user.getId());
+    String category = transactionRepository.getHighestCategoryInDateRange(user.getId(), start, end);
 
-    return "Your lowest spending category last month was " + category + ".";
+    String label;
+    if (date != null) {
+        label = "on " + date;
+    } else {
+        String periodLabel = (timePeriod != null ? timePeriod : "this_month").toLowerCase();
+        switch (periodLabel) {
+            case "yesterday":
+                label = "yesterday";
+                break;
+            case "day_before_yesterday":
+                label = "day before yesterday";
+                break;
+            case "this_week":
+                label = "this week";
+                break;
+            case "last_week":
+                label = "last week";
+                break;
+            case "this_month":
+                label = "this month";
+                break;
+            case "last_month":
+                label = "last month";
+                break;
+            case "this_year":
+                label = "this year";
+                break;
+            case "last_year":
+                label = "last year";
+                break;
+            default:
+                label = "for " + periodLabel.replace("_", " ");
+                break;
+        }
+    }
+
+    if (category == null) {
+        return "No expenses found " + label + ".";
+    }
+
+    return "Your highest spending category " + label + " was " + category + ".";
+}
+
+public String getLowestCategory(String email, String timePeriod, String date) {
+    User user = userRepository.findByEmail(email);
+    LocalDate[] range = resolveDateRange(timePeriod, date);
+    LocalDate start = range[0];
+    LocalDate end = range[1];
+
+    String category = transactionRepository.getLowestCategoryInDateRange(user.getId(), start, end);
+
+    String label;
+    if (date != null) {
+        label = "on " + date;
+    } else {
+        String periodLabel = (timePeriod != null ? timePeriod : "this_month").toLowerCase();
+        switch (periodLabel) {
+            case "yesterday":
+                label = "yesterday";
+                break;
+            case "day_before_yesterday":
+                label = "day before yesterday";
+                break;
+            case "this_week":
+                label = "this week";
+                break;
+            case "last_week":
+                label = "last week";
+                break;
+            case "this_month":
+                label = "this month";
+                break;
+            case "last_month":
+                label = "last month";
+                break;
+            case "this_year":
+                label = "this year";
+                break;
+            case "last_year":
+                label = "last year";
+                break;
+            default:
+                label = "for " + periodLabel.replace("_", " ");
+                break;
+        }
+    }
+
+    if (category == null) {
+        return "No expenses found " + label + ".";
+    }
+
+    return "Your lowest spending category " + label + " was " + category + ".";
 }
 public String filterExpensesByAmount(String email, String comparison, Double amount) {
 
@@ -746,15 +838,11 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
     LocalDate date;
 
     try {
-
-        if (query.getDate() == null) {
+        date = resolveDate(query.getDate());
+        if (date == null) {
             date = LocalDate.now();
-        } else {
-            date = LocalDate.parse(query.getDate());
         }
-
     } catch (Exception e) {
-
         return "Invalid date format. Please provide a valid date.";
     }
 
@@ -772,6 +860,25 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
     transactionRepository.save(transaction);
 
     return "Transaction added successfully.";
+}
+
+private LocalDate resolveDate(String dateStr) {
+    if (dateStr == null) {
+        return null;
+    }
+    String normalized = dateStr.trim().toLowerCase();
+    switch (normalized) {
+        case "today":
+            return LocalDate.now();
+        case "yesterday":
+            return LocalDate.now().minusDays(1);
+        case "tomorrow":
+            return LocalDate.now().plusDays(1);
+        case "day_before_yesterday":
+            return LocalDate.now().minusDays(2);
+        default:
+            return LocalDate.parse(dateStr);
+    }
 }
 public Category findClosestCategory(String input) {
 
@@ -824,10 +931,13 @@ public String handleUpdateTransaction(FinanceQueryDTO query, String email) {
 
     LocalDate date;
 
-    if (query.getDate() == null) {
-        date = LocalDate.now();
-    } else {
-        date = LocalDate.parse(query.getDate());
+    try {
+        date = resolveDate(query.getDate());
+        if (date == null) {
+            date = LocalDate.now();
+        }
+    } catch (Exception e) {
+        return "Invalid date format. Please provide a valid date.";
     }
 
     List<Transaction> transactions =
@@ -877,10 +987,13 @@ public String handleDeleteTransaction(FinanceQueryDTO query, String email) {
 
     LocalDate date;
 
-    if (query.getDate() == null) {
-        date = LocalDate.now();
-    } else {
-        date = LocalDate.parse(query.getDate());
+    try {
+        date = resolveDate(query.getDate());
+        if (date == null) {
+            date = LocalDate.now();
+        }
+    } catch (Exception e) {
+        return "Invalid date format. Please provide a valid date.";
     }
 
     List<Transaction> transactions =
@@ -1047,7 +1160,7 @@ private LocalDate[] resolveDateRange(String timePeriod, String date) {
     ------------------------------------ */
 
     if (date != null) {
-        start = LocalDate.parse(date);
+        start = resolveDate(date);
         end = start;
         return new LocalDate[]{start, end};
     }
