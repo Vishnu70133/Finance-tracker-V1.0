@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: 'http://localhost:8089',
+  baseURL: 'https://fintrack-backend-ed16.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
