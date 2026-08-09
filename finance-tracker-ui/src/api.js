@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: 'http://localhost:8089',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,7 +20,9 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ─── Response Interceptor: Handle 401 (token expired / invalid) ───────────────
+let isRedirectingToLogin = false
+
+// ─── Response Interceptor: Handle 401 & 403 (token expired / invalid) ───────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -32,13 +34,16 @@ api.interceptors.response.use(
     console.log("API ERROR DATA:", error.response?.data)
 
     // Token expired or invalid
-    if (status === 401 || status === 403) {
+    if ((status === 401 || status === 403) && window.location.pathname !== "/login") {
+      if (!isRedirectingToLogin) {
+        isRedirectingToLogin = true
+        console.warn("Authentication expired/invalid. Redirecting to login...")
 
-      console.warn("Authentication expired. Redirecting to login...")
+        localStorage.removeItem("token")
+        localStorage.removeItem("activeChatSessionId")
 
-      localStorage.removeItem("token")
-
-      window.location.href = "/login"
+        window.location.href = "/login"
+      }
     }
 
     return Promise.reject(error)

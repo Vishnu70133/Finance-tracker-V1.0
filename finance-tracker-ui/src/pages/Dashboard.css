@@ -396,7 +396,7 @@
 }
 .ai-bubble{
   position:fixed;
-  bottom:25px;
+  bottom:100px;
   right:25px;
   width:60px;
   height:60px;

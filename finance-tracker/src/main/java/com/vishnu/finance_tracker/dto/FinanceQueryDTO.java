@@ -25,6 +25,10 @@ public class FinanceQueryDTO {
 
     private String description;
 
+    private String profileField;
+
+    private String newValue;
+
     // GETTERS AND SETTERS
 
     public String getIntent() {
@@ -105,5 +109,21 @@ public class FinanceQueryDTO {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getProfileField() {
+        return profileField;
+    }
+
+    public void setProfileField(String profileField) {
+        this.profileField = profileField;
+    }
+
+    public String getNewValue() {
+        return newValue;
+    }
+
+    public void setNewValue(String newValue) {
+        this.newValue = newValue;
     }
 }

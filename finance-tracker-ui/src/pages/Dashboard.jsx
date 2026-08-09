@@ -6,6 +6,8 @@ import TransactionTable from '../components/TransactionTable'
 import AddTransactionForm from '../components/AddTransactionForm'
 import './Dashboard.css'
 import Navbar from '../components/Navbar'
+import { useToast } from '../context/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 
 export default function Dashboard() {
@@ -26,6 +28,12 @@ const [endDate, setEndDate] = useState('')
   const [hasMore, setHasMore] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
+  // Custom confirmation modal states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [transactionToDelete, setTransactionToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const { showToast } = useToast()
+
   const pageSize = 5
 
   // Get user email from token payload (basic decode, no library needed)
@@ -39,18 +47,29 @@ const [endDate, setEndDate] = useState('')
     }
   })()
 
-  async function handleDelete(id) {
-  if (!confirm('Delete this transaction?')) return
-
-  try {
-    await api.delete(`/transactions/${id}`)
-    fetchTransactions(page)
-    fetchSummary()
-    fetchCategoryStats() 
-  } catch (err) {
-    console.error(err)
+  function handleDelete(id) {
+    setTransactionToDelete(id)
+    setDeleteModalOpen(true)
   }
-}
+
+  async function handleConfirmDelete() {
+    if (!transactionToDelete || deleteLoading) return
+    setDeleteLoading(true)
+    try {
+      await api.delete(`/transactions/${transactionToDelete}`)
+      showToast('Transaction deleted successfully.', 'success')
+      fetchTransactions(page)
+      fetchSummary()
+      fetchCategoryStats()
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to delete transaction.', 'error')
+    } finally {
+      setDeleteLoading(false)
+      setDeleteModalOpen(false)
+      setTransactionToDelete(null)
+    }
+  }
 function handleEdit(transaction) {
   setEditingTransaction(transaction)
   setShowForm(true)
@@ -295,12 +314,26 @@ const totalExpense = summary.totalExpense || 0
         </div>
       </main>
       {/* ✅ AI Bubble */}
-    <div
-      className="ai-bubble"
-      onClick={() => navigate("/ai")}
-    >
-      💬
-    </div>
+      <div
+        className="ai-bubble"
+        onClick={() => navigate("/ai")}
+      >
+        💬
+      </div>
+      
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Transaction?"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setDeleteModalOpen(false)
+          setTransactionToDelete(null)
+        }}
+        loading={deleteLoading}
+      />
     </div>
     
   )

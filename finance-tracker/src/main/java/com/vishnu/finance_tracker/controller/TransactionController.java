@@ -12,6 +12,8 @@ import com.vishnu.finance_tracker.dto.TransactionResponseDTO;
 import com.vishnu.finance_tracker.model.ApiResponse;
 import com.vishnu.finance_tracker.model.Transaction;
 import com.vishnu.finance_tracker.service.TransactionService;
+import com.vishnu.finance_tracker.service.UserService;
+import com.vishnu.finance_tracker.model.User;
 
 import jakarta.validation.Valid;
 
@@ -22,6 +24,9 @@ public class TransactionController {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private UserService userService;
 
 @PostMapping
 public Transaction createTransaction(@RequestParam Long categoryId,
@@ -36,12 +41,31 @@ public Transaction createTransaction(@RequestParam Long categoryId,
     return transactionService.createTransactionByEmail(email, categoryId, transaction);
 }
 
+    private void checkUserIdOwnership(Long userId) {
+        String email =
+            (String) org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+        User user = userService.getUserByEmail(email);
+        if (!user.getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+    }
+
 @GetMapping
 public java.util.List<Transaction> getAllTransactions() {
-    return transactionService.getAllTransactions();
+    String email =
+        (String) org.springframework.security.core.context.SecurityContextHolder
+            .getContext()
+            .getAuthentication()
+            .getPrincipal();
+    User user = userService.getUserByEmail(email);
+    return transactionService.getTransactionsByUser(user.getId());
 }
 @GetMapping("/user/{userId}")
 public java.util.List<Transaction> getTransactionsByUser(@PathVariable Long userId) {
+    checkUserIdOwnership(userId);
     return transactionService.getTransactionsByUser(userId);
 }
 @GetMapping("/user/{userId}/page")
@@ -49,7 +73,7 @@ public org.springframework.data.domain.Page<TransactionResponseDTO> getPagedTran
         @PathVariable Long userId,
         @RequestParam int page,
         @RequestParam int size) {
-
+    checkUserIdOwnership(userId);
     return transactionService.getTransactionsByUser(userId, page, size);
 }
 @PutMapping("/{id}")
@@ -71,7 +95,7 @@ public java.util.List<TransactionResponseDTO> getTransactionsByDateRange(
         @PathVariable Long userId,
         @RequestParam String start,
         @RequestParam String end) {
-
+    checkUserIdOwnership(userId);
     return transactionService.getTransactionsByDateRange(
             userId,
             java.time.LocalDate.parse(start),
@@ -80,6 +104,7 @@ public java.util.List<TransactionResponseDTO> getTransactionsByDateRange(
 }
 @GetMapping("/user/{userId}/summary")
 public MonthlySummaryDTO getSummary(@PathVariable Long userId) {
+    checkUserIdOwnership(userId);
     return transactionService.getMonthlySummary(userId);
 }
 

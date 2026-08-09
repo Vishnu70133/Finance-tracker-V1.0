@@ -69,15 +69,24 @@ public class TransactionService {
         return transactionRepository.findAll();
     }
     public List<Transaction> getTransactionsByUser(Long userId) {
-    return transactionRepository.findByUserIdAndDeletedFalse(userId);
-}
-public Page<TransactionResponseDTO> getTransactionsByUser(Long userId, int page, int size) {
+        String email = getLoggedInEmail();
+        User user = userRepository.findByEmail(email);
+        if (user == null || !user.getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        return transactionRepository.findByUserIdAndDeletedFalse(userId);
+    }
+    public Page<TransactionResponseDTO> getTransactionsByUser(Long userId, int page, int size) {
+        String email = getLoggedInEmail();
+        User user = userRepository.findByEmail(email);
+        if (user == null || !user.getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        Page<Transaction> transactions =
+                transactionRepository.findByUserIdAndDeletedFalse(userId, PageRequest.of(page, size));
 
-    Page<Transaction> transactions =
-            transactionRepository.findByUserIdAndDeletedFalse(userId, PageRequest.of(page, size));
-
-    return transactions.map(this::mapToDTO);
-}
+        return transactions.map(this::mapToDTO);
+    }
 private TransactionResponseDTO mapToDTO(Transaction t) {
     return new TransactionResponseDTO(
             t.getId(),
@@ -90,58 +99,74 @@ private TransactionResponseDTO mapToDTO(Transaction t) {
             t.getCategory().getId() 
     );
 }
-public Transaction updateTransaction(Long transactionId, Transaction updatedTransaction) {
+    public Transaction updateTransaction(Long transactionId, Transaction updatedTransaction) {
+        Transaction existing = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
-    Transaction existing = transactionRepository.findById(transactionId)
-            .orElseThrow();
-
-    existing.setAmount(updatedTransaction.getAmount());
-    existing.setType(updatedTransaction.getType());
-    existing.setDescription(updatedTransaction.getDescription());
-    existing.setDate(updatedTransaction.getDate());
-
-    return transactionRepository.save(existing);
-}
-public void deleteTransaction(Long id) {
-
-    Transaction transaction = transactionRepository.findById(id)
-            .orElseThrow();
-
-    transaction.setDeleted(true);
-    transactionRepository.save(transaction);
-}
-public List<TransactionResponseDTO> getTransactionsByDateRange(
-        Long userId,
-        LocalDate start,
-        LocalDate end) {
-
-    List<Transaction> transactions =
-            transactionRepository.findByUserIdAndDateBetweenAndDeletedFalse(
-                    userId, start, end);
-
-    return transactions.stream()
-            .map(this::mapToDTO)
-            .collect(Collectors.toList());
-}
-public MonthlySummaryDTO getMonthlySummary(Long userId) {
-
-    List<Transaction> transactions =
-            transactionRepository.findByUserIdAndDeletedFalse(userId);
-
-    double income = 0;
-    double expense = 0;
-
-    for (Transaction t : transactions) {
-
-        if ("INCOME".equalsIgnoreCase(t.getType())) {
-            income += t.getAmount();
-        } else if ("EXPENSE".equalsIgnoreCase(t.getType())) {
-            expense += t.getAmount();
+        String email = getLoggedInEmail();
+        if (!existing.getUser().getEmail().equals(email)) {
+            throw new RuntimeException("Unauthorized");
         }
-    }
 
-    return new MonthlySummaryDTO(income, expense);
-}
+        existing.setAmount(updatedTransaction.getAmount());
+        existing.setType(updatedTransaction.getType());
+        existing.setDescription(updatedTransaction.getDescription());
+        existing.setDate(updatedTransaction.getDate());
+
+        return transactionRepository.save(existing);
+    }
+    public void deleteTransaction(Long id) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        String email = getLoggedInEmail();
+        if (!transaction.getUser().getEmail().equals(email)) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        transaction.setDeleted(true);
+        transactionRepository.save(transaction);
+    }
+    public List<TransactionResponseDTO> getTransactionsByDateRange(
+            Long userId,
+            LocalDate start,
+            LocalDate end) {
+        String email = getLoggedInEmail();
+        User user = userRepository.findByEmail(email);
+        if (user == null || !user.getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndDateBetweenAndDeletedFalse(
+                        userId, start, end);
+
+        return transactions.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+    public MonthlySummaryDTO getMonthlySummary(Long userId) {
+        String email = getLoggedInEmail();
+        User user = userRepository.findByEmail(email);
+        if (user == null || !user.getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        List<Transaction> transactions =
+                transactionRepository.findByUserIdAndDeletedFalse(userId);
+
+        double income = 0;
+        double expense = 0;
+
+        for (Transaction t : transactions) {
+
+            if ("INCOME".equalsIgnoreCase(t.getType())) {
+                income += t.getAmount();
+            } else if ("EXPENSE".equalsIgnoreCase(t.getType())) {
+                expense += t.getAmount();
+            }
+        }
+
+        return new MonthlySummaryDTO(income, expense);
+    }
 
 public String getLoggedInEmail() {
 
@@ -456,6 +481,9 @@ public String getHighestCategory(String email, String timePeriod, String date) {
     } else {
         String periodLabel = (timePeriod != null ? timePeriod : "this_month").toLowerCase();
         switch (periodLabel) {
+            case "today":
+                label = "today";
+                break;
             case "yesterday":
                 label = "yesterday";
                 break;
@@ -507,6 +535,9 @@ public String getLowestCategory(String email, String timePeriod, String date) {
     } else {
         String periodLabel = (timePeriod != null ? timePeriod : "this_month").toLowerCase();
         switch (periodLabel) {
+            case "today":
+                label = "today";
+                break;
             case "yesterday":
                 label = "yesterday";
                 break;
@@ -606,11 +637,82 @@ public String getTotalExpense(String email, String timePeriod, String date) {
     if (date != null) {
         label = "on " + date;
     } else {
-        label = "for " + timePeriod.replace("_", " ");
+        String safeTimePeriod = (timePeriod != null ? timePeriod : "this_month");
+        label = "for " + safeTimePeriod.replace("_", " ");
     }
 
     return "Your total expenses " + label + " were ₹"
             + String.format("%.0f", total);
+}
+
+public String getTotalIncome(String email, String timePeriod, String date) {
+
+    User user = userRepository.findByEmail(email);
+
+    LocalDate[] range = resolveDateRange(timePeriod, date);
+
+    LocalDate start = range[0];
+    LocalDate end = range[1];
+
+    double total = transactionRepository.sumIncomeByDateRange(
+            user.getId(),
+            start,
+            end
+    );
+
+    String label;
+
+    if (date != null) {
+        label = "on " + date;
+    } else {
+        String safeTimePeriod = (timePeriod != null ? timePeriod : "this_month");
+        label = "for " + safeTimePeriod.replace("_", " ");
+    }
+
+    return "Your total income " + label + " was ₹"
+            + String.format("%.0f", total);
+}
+
+public String getNetBalance(String email, String timePeriod, String date) {
+
+    User user = userRepository.findByEmail(email);
+
+    LocalDate[] range = resolveDateRange(timePeriod, date);
+
+    LocalDate start = range[0];
+    LocalDate end = range[1];
+
+    double totalIncome = transactionRepository.sumIncomeByDateRange(
+            user.getId(),
+            start,
+            end
+    );
+
+    double totalExpenses = transactionRepository.sumExpensesByDateRange(
+            user.getId(),
+            start,
+            end
+    );
+
+    double netBalance = totalIncome - totalExpenses;
+
+    String label;
+    String endLabel;
+
+    if (date != null) {
+        label = "on " + date;
+        endLabel = "on " + date;
+    } else {
+        String safeTimePeriod = (timePeriod != null ? timePeriod : "this_month");
+        label = "for " + safeTimePeriod.replace("_", " ");
+        endLabel = safeTimePeriod.replace("_", " ");
+    }
+
+    return "Your net balance " + label + " is ₹"
+            + String.format("%,.0f", netBalance)
+            + ". You earned ₹" + String.format("%,.0f", totalIncome)
+            + " and spent ₹" + String.format("%,.0f", totalExpenses)
+            + " " + endLabel + ".";
 }
 
 public String getCategoryExpense(String email, String category, String timePeriod, String date) {
@@ -634,7 +736,8 @@ public String getCategoryExpense(String email, String category, String timePerio
     if (date != null) {
         label = "on " + date;
     } else {
-        label = "for " + timePeriod.replace("_", " ");
+        String safeTimePeriod = (timePeriod != null ? timePeriod : "this_month");
+        label = "for " + safeTimePeriod.replace("_", " ");
     }
 
     return "You spent ₹"
@@ -784,7 +887,39 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
 
     // Validate category
     if (query.getCategory() == null) {
+        pendingActions.put(email, new PendingAction("ADD_TRANSACTION", query));
         return "Please provide the category for the transaction.";
+    }
+
+    // Find category
+    Category category = categoryRepository
+            .findByNameIgnoreCase(query.getCategory())
+            .orElse(null);
+
+    // Category suggestion logic
+    if (category == null) {
+
+        String originalCategory = query.getCategory();
+
+        if (query.getDescription() == null) {
+            query.setDescription(originalCategory);
+        }
+
+        query.setCategory(null);
+
+        pendingActions.put(email,
+                new PendingAction("ADD_TRANSACTION", query));
+
+        Category suggestion = findClosestCategory(originalCategory);
+
+        if (suggestion != null) {
+            return "Category '" + originalCategory +
+                    "' not found. Did you mean '" +
+                    suggestion.getName() + "'?";
+        }
+
+        return "Category '" + originalCategory
+                + "' not found. Please provide a valid category.";
     }
 
     // Default type if missing (most natural sentences imply expense)
@@ -801,39 +936,6 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
         return "Please provide a description for this transaction.";
     }
 
-    // Find logged-in user
-    User user = userRepository.findByEmail(email);
-
-    if (user == null) {
-        return "User not found.";
-    }
-
-    // Find category
-    Category category = categoryRepository
-            .findByNameIgnoreCase(query.getCategory())
-            .orElse(null);
-
-    // Category suggestion logic
-    if (category == null) {
-
-        String originalCategory = query.getCategory();
-
-        Category suggestion = findClosestCategory(originalCategory);
-
-        if (suggestion != null) {
-
-            pendingActions.put(email,
-                    new PendingAction("ADD_TRANSACTION", query));
-
-            return "Category '" + originalCategory +
-                    "' not found. Did you mean '" +
-                    suggestion.getName() + "'?";
-        }
-
-        return "Category '" + query.getCategory()
-                + "' not found. Please provide a valid category.";
-    }
-
     // Date handling
     LocalDate date;
 
@@ -844,6 +946,13 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
         }
     } catch (Exception e) {
         return "Invalid date format. Please provide a valid date.";
+    }
+
+    // Find logged-in user
+    User user = userRepository.findByEmail(email);
+
+    if (user == null) {
+        return "User not found.";
     }
 
     // Create transaction
@@ -857,9 +966,45 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
     transaction.setDate(date);
 
     // Save transaction
-    transactionRepository.save(transaction);
+    System.out.println("===== BEFORE TRANSACTION SAVE =====");
+    System.out.println("Amount: " + transaction.getAmount());
+    System.out.println("Type: " + transaction.getType());
+    System.out.println("Description: " + transaction.getDescription());
+    System.out.println("Date: " + transaction.getDate());
+    System.out.println("Category: " +
+        (transaction.getCategory() != null
+            ? transaction.getCategory().getName()
+            : "NULL"));
+    System.out.println("User: " +
+        (transaction.getUser() != null
+            ? transaction.getUser().getEmail()
+            : "NULL"));
 
-    return "Transaction added successfully.";
+    Transaction saved = transactionRepository.save(transaction);
+
+    System.out.println("===== AFTER TRANSACTION SAVE =====");
+    System.out.println("Saved ID: " + (saved != null ? saved.getId() : "NULL"));
+
+    if (saved == null || saved.getId() == null) {
+        return "I couldn't add the transaction. Please try again.";
+    }
+
+    if ("INCOME".equalsIgnoreCase(query.getType())) {
+        return String.format("Income added: ₹%.0f for %s.",
+                query.getAmount(),
+                query.getDescription().trim());
+    } else {
+        double todayTotal = transactionRepository.sumExpensesByDateRange(
+                user.getId(),
+                date,
+                date
+        );
+
+        return String.format("Expense added: ₹%.0f for %s. Today's total expenses: ₹%.0f.",
+                query.getAmount(),
+                query.getDescription().trim(),
+                todayTotal);
+    }
 }
 
 private LocalDate resolveDate(String dateStr) {
@@ -1043,24 +1188,78 @@ public Object executePendingAction(String email){
 
     pendingActions.remove(email);
 
-    switch (pending.getAction()) {
+        switch (pending.getAction()) {
 
-        case "ADD_TRANSACTION":
+            case "ADD_TRANSACTION":
 
-            if(query.getDescription() == null){
-                query.setDescription(query.getCategory() + " expense");
-            }
+                if(query.getDescription() == null){
+                    query.setDescription(query.getCategory() + " expense");
+                }
 
-            if(query.getType() == null){
-                query.setType("EXPENSE");
-            }
+                if(query.getType() == null){
+                    query.setType("EXPENSE");
+                }
 
-            return handleAddTransaction(query,email);
+                return handleAddTransaction(query,email);
 
-        default:
-            return "Unknown pending action.";
+            case "UPDATE_PROFILE":
+                return handleExecuteUpdateProfile(query, email);
+
+            default:
+                return "Unknown pending action.";
+        }
     }
-}
+
+    public String handleUpdateProfile(FinanceQueryDTO query, String email) {
+        if (query.getProfileField() == null || query.getNewValue() == null) {
+            return "Please specify the profile field and new value.";
+        }
+
+        String field = query.getProfileField().toUpperCase();
+        String newValue = query.getNewValue().trim();
+
+        if (!"NAME".equals(field) && !"EMAIL".equals(field)) {
+            return "Only name updates are supported via AI at this time.";
+        }
+
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return "User not found.";
+        }
+
+        if ("EMAIL".equals(field)) {
+            return "Email updates cannot be completed via AI as it would invalidate your active authentication session. Please update email via a separate authentication-flow update.";
+        }
+
+        // Name validation
+        if (newValue.isEmpty()) {
+            return "Name cannot be empty.";
+        }
+        if (newValue.length() < 2 || newValue.length() > 50) {
+            return "Name must be between 2 and 50 characters.";
+        }
+
+        pendingActions.put(email, new PendingAction("UPDATE_PROFILE", query));
+
+        return "I can change your name from " + user.getName() + " to " + newValue + ". Would you like me to proceed?";
+    }
+
+    public String handleExecuteUpdateProfile(FinanceQueryDTO query, String email) {
+        String field = query.getProfileField().toUpperCase();
+        String newValue = query.getNewValue().trim();
+
+        if ("NAME".equals(field)) {
+            User user = userRepository.findByEmail(email);
+            if (user == null) {
+                return "User not found.";
+            }
+            user.setName(newValue);
+            userRepository.save(user);
+            return "Done. Your name has been updated to " + newValue + ".";
+        }
+
+        return "Unsupported profile field update.";
+    }
 
 public String detectCategoryFromText(String question) {
 
@@ -1115,28 +1314,18 @@ public String detectCategoryFromText(String question) {
 }
 
 public String detectDescriptionFromText(String question) {
-
-    question = question.toLowerCase();
-
-    // Remove numbers
-    question = question.replaceAll("\\d+", "");
-
-    // Remove common finance words
-    question = question
-            .replace("add", "")
-            .replace("expense", "")
-            .replace("income", "")
-            .replace("spent", "")
-            .replace("today", "")
-            .replace("yesterday", "")
-            .replace("on", "")
-            .trim();
-
-    if (question.isEmpty()) {
+    if (question == null || question.trim().isEmpty()) {
         return null;
     }
-
-    return question;
+    String cleaned = question.trim()
+            .replaceAll("(?i)\\b(add|an|expense|income|spent|spend|today|yesterday|tomorrow|on|of|for|in|a|the|to)\\b", "")
+            .replaceAll("[₹$€£\\d\\.\\?!\\,]", "")
+            .replaceAll("\\s+", " ")
+            .trim();
+    if (cleaned.isEmpty()) {
+        return null;
+    }
+    return cleaned;
 }
 
 public boolean categoryExists(String categoryName){
@@ -1219,6 +1408,11 @@ private LocalDate[] resolveDateRange(String timePeriod, String date) {
     ------------------------------------ */
 
     switch (timePeriod) {
+
+        case "today":
+            start = LocalDate.now();
+            end = start;
+            break;
 
         case "yesterday":
             start = LocalDate.now().minusDays(1);

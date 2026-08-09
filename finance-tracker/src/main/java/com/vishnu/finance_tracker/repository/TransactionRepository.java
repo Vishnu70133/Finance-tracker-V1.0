@@ -36,6 +36,20 @@ double sumExpensesByDateRange(
 );
 
 @Query("""
+SELECT COALESCE(SUM(t.amount),0)
+FROM Transaction t
+WHERE t.user.id = :userId
+AND t.type = 'INCOME'
+AND t.deleted = false
+AND t.date BETWEEN :start AND :end
+""")
+double sumIncomeByDateRange(
+        @Param("userId") Long userId,
+        @Param("start") LocalDate start,
+        @Param("end") LocalDate end
+);
+
+@Query("""
 SELECT new com.vishnu.finance_tracker.dto.CategorySummaryDTO(
     t.category.name,
     SUM(t.amount)

@@ -25,6 +25,18 @@ public class UserService {
 
     public User saveUser(User user) {
 
+    if (user.getName() == null) {
+        throw new RuntimeException("Name cannot be null");
+    }
+    String trimmedName = user.getName().trim();
+    if (trimmedName.isEmpty()) {
+        throw new RuntimeException("Name cannot be blank");
+    }
+    if (trimmedName.length() < 2 || trimmedName.length() > 50) {
+        throw new RuntimeException("Name must be between 2 and 50 characters long");
+    }
+    user.setName(trimmedName);
+
     if(userRepository.findByEmail(user.getEmail()) != null){
         throw new RuntimeException("Email already registered");
     }
@@ -72,7 +84,17 @@ public User updateUserByEmail(String email, User updatedUser) {
         throw new RuntimeException("User not found");
     }
 
-    user.setName(updatedUser.getName());
+    if (updatedUser.getName() == null) {
+        throw new RuntimeException("Name cannot be null");
+    }
+    String trimmedName = updatedUser.getName().trim();
+    if (trimmedName.isEmpty()) {
+        throw new RuntimeException("Name cannot be blank");
+    }
+    if (trimmedName.length() < 2 || trimmedName.length() > 50) {
+        throw new RuntimeException("Name must be between 2 and 50 characters long");
+    }
+    user.setName(trimmedName);
 
     // Optional password update
     if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {

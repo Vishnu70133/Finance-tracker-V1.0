@@ -83,10 +83,16 @@ Possible intents:
 CATEGORY_EXPENSE
 BIGGEST_EXPENSE
 TOTAL_EXPENSE
+TOTAL_INCOME
+NET_BALANCE
 SORT_EXPENSES
 HIGHEST_CATEGORY
 LOWEST_CATEGORY
 FILTER_AMOUNT
+UPDATE_PROFILE
+GET_PROFILE_NAME
+GET_PROFILE_EMAIL
+
 
 Examples:
 
@@ -291,14 +297,13 @@ UPDATE_TRANSACTION
 DELETE_TRANSACTION
 
 Rules for transactions:
-- Extract amount if mentioned
-- Extract category if mentioned
-- Extract description if mentioned
-- Extract date if mentioned
-- Extract type (EXPENSE or INCOME)
+- Extract amount if mentioned.
+- Extract category if mentioned (e.g. food, groceries, entertainment, health, transportation, salary, income).
+- Extract description: Extract the clean semantic description of the item, purpose, or activity (e.g. "cinema", "pizza", "biryani", "food delivery", "movie ticket", "groceries"). Never include prepositions ("for", "on", "of"), amounts, or date text.
+- Extract date if mentioned.
+- Extract type (EXPENSE or INCOME).
 - If date is relative (today, yesterday, tomorrow), return the relative term itself (e.g. "today", "yesterday", "tomorrow") in the "date" field.
 - If date is an absolute date (e.g. "March 10 2026", "2026-03-10"), convert to ISO format "YYYY-MM-DD" and return in the "date" field.
-- If description exists in phrases like "for lunch", "for movie", "for groceries", extract it
 - If information is missing, leave fields null
 
 Examples:
@@ -308,8 +313,65 @@ User: Add an expense of 500 for food today
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
+ "description":"food",
  "type":"EXPENSE",
  "date":"today"
+}}
+
+User: Add an expense of ₹500 for cinema today
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":500,
+ "category":"entertainment",
+ "description":"cinema",
+ "type":"EXPENSE",
+ "date":"today"
+}}
+
+User: Add an expense of ₹500 for Biryani today.
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":500,
+ "category":"food",
+ "description":"Biryani",
+ "type":"EXPENSE",
+ "date":"today"
+}}
+
+User: Add ₹300 for Pizza.
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":300,
+ "category":"food",
+ "description":"Pizza",
+ "type":"EXPENSE"
+}}
+
+User: Add an expense of 700 for dinner.
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":700,
+ "category":"food",
+ "description":"dinner",
+ "type":"EXPENSE"
+}}
+
+User: Spend ₹1200 on groceries.
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":1200,
+ "category":"groceries",
+ "description":"groceries",
+ "type":"EXPENSE"
+}}
+
+User: Add ₹500 Food expense for lunch.
+{{
+ "intent":"ADD_TRANSACTION",
+ "amount":500,
+ "category":"food",
+ "description":"lunch",
+ "type":"EXPENSE"
 }}
 
 User: Add 2000 income for salary
@@ -317,6 +379,7 @@ User: Add 2000 income for salary
  "intent":"ADD_TRANSACTION",
  "amount":2000,
  "category":"salary",
+ "description":"salary",
  "type":"INCOME"
 }}
 
@@ -325,6 +388,7 @@ User: Add 500 food
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
+ "description":"food",
  "type":"EXPENSE"
 }}
 
@@ -360,15 +424,6 @@ User: Delete food expense on Feb 24
  "category":"food",
  "date":"2026-02-24"
 }}
- User: Add 500 food expense today for lunch
-{{
- "intent":"ADD_TRANSACTION",
- "amount":500,
- "category":"food",
- "type":"EXPENSE",
- "description":"lunch",
- "date":"today"
-}}
 
 User: Add 300 entertainment expense yesterday for movie
 {{
@@ -389,7 +444,8 @@ User: Add 2000 salary income today for freelance work
  "description":"freelance work",
  "date":"today"
 }}
- User: Update my food expense yesterday to 800 for lunch
+
+User: Update my food expense yesterday to 800 for lunch
 {{
  "intent":"UPDATE_TRANSACTION",
  "category":"food",
@@ -398,7 +454,8 @@ User: Add 2000 salary income today for freelance work
  "description":"lunch",
  "date":"yesterday"
 }}
- User: Update entertainment expense on Feb 24 to 2000 for movie
+
+User: Update entertainment expense on Feb 24 to 2000 for movie
 {{
  "intent":"UPDATE_TRANSACTION",
  "category":"entertainment",
@@ -407,7 +464,8 @@ User: Add 2000 salary income today for freelance work
  "description":"movie",
  "date":"2026-02-24"
 }}
- User: Update my health expense today to 500 for hospital checkup
+
+User: Update my health expense today to 500 for hospital checkup
 {{
  "intent":"UPDATE_TRANSACTION",
  "category":"health",
@@ -416,7 +474,8 @@ User: Add 2000 salary income today for freelance work
  "description":"hospital checkup",
  "date":"today"
 }}
- User: Update my food expense yesterday to 700
+
+User: Update my food expense yesterday to 700
 {{
  "intent":"UPDATE_TRANSACTION",
  "category":"food",
@@ -449,6 +508,106 @@ User: Add 2000 salary income today for freelance work
 {{
  "intent":"ANALYZE_SPENDING"
 }}
+
+User: Change my name to Vishnu Kumar
+{{
+ "intent":"UPDATE_PROFILE",
+ "profileField":"NAME",
+ "newValue":"Vishnu Kumar"
+}}
+
+User: Update my name to Vishnu Das
+{{
+ "intent":"UPDATE_PROFILE",
+ "profileField":"NAME",
+ "newValue":"Vishnu Das"
+}}
+
+User: Change my email to newemail@example.com
+{{
+ "intent":"UPDATE_PROFILE",
+ "profileField":"EMAIL",
+ "newValue":"newemail@example.com"
+}}
+
+User: What is my name?
+{{
+ "intent":"GET_PROFILE_NAME"
+}}
+
+User: What's my name?
+{{
+ "intent":"GET_PROFILE_NAME"
+}}
+
+User: What is my email?
+{{
+ "intent":"GET_PROFILE_EMAIL"
+}}
+
+User: What email is associated with my account?
+{{
+ "intent":"GET_PROFILE_EMAIL"
+}}
+
+User: Which email did I register with?
+{{
+ "intent":"GET_PROFILE_EMAIL"
+}}
+
+User: Tell me my account email
+{{
+ "intent":"GET_PROFILE_EMAIL"
+}}
+
+User: What did I earn today?
+{{
+ "intent":"TOTAL_INCOME",
+ "timePeriod":"today"
+}}
+
+User: What was my income today?
+{{
+ "intent":"TOTAL_INCOME",
+ "timePeriod":"today"
+}}
+
+User: How much did I earn this month?
+{{
+ "intent":"TOTAL_INCOME",
+ "timePeriod":"this_month"
+}}
+
+User: What was my net balance today?
+{{
+ "intent":"NET_BALANCE",
+ "timePeriod":"today"
+}}
+
+User: What is my net balance this month?
+{{
+ "intent":"NET_BALANCE",
+ "timePeriod":"this_month"
+}}
+
+User: How much balance do I have left?
+{{
+ "intent":"NET_BALANCE"
+}}
+
+User: What did I learn today?
+{{
+ "intent":null
+}}
+
+User: How are you doing?
+{{
+ "intent":null
+}}
+
+Rules for Ambiguous Queries:
+- Distinguish between "earn" (which maps to TOTAL_INCOME) and "learn" (which is NOT a financial query, and maps to null intent).
+- Queries about non-financial activities, general knowledge, or features not tracked by the application (e.g. learning, fitness, habits) MUST map to intent null.
 """)
             .user(question)
             .call()
@@ -456,12 +615,19 @@ User: Add 2000 salary income today for freelance work
 
     System.out.println("AI response: " + result);
 
+    String cleanedJson = result.trim();
+    int firstBrace = cleanedJson.indexOf('{');
+    int lastBrace = cleanedJson.lastIndexOf('}');
+    if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+        cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1);
+    }
+
     ObjectMapper mapper = new ObjectMapper();
 
     try {
-        return mapper.readValue(result, FinanceQueryDTO.class);
+        return mapper.readValue(cleanedJson, FinanceQueryDTO.class);
     } catch (Exception e) {
-        throw new RuntimeException("Failed to parse AI response: " + result);
+        throw new RuntimeException("Failed to parse AI response: " + result, e);
     }
 }
 
@@ -484,6 +650,7 @@ public String generalChat(Long sessionId, String question){
         • Answer clearly and concisely.
         • Respond in natural language.
         • Do NOT return JSON unless explicitly requested.
+        • If the user asks about their personal daily activities, learning, or non-financial habits that are not recorded in their transactions (e.g. "What did I learn today?", "Where did I go today?"), politely inform them that you only track their financial transactions (income and expenses) and do not have access to learning or non-financial activity logs.
         """;
 
     String response = chatClient

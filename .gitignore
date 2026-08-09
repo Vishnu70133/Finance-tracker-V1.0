@@ -1,0 +1,41 @@
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Frontend - Node
+finance-tracker-ui/node_modules/
+finance-tracker-ui/dist/
+finance-tracker-ui/build/
+finance-tracker-ui/.vite/
+
+# Backend - Java / Spring
+finance-tracker/target/
+
+# ML Service - Python
+ml-service/__pycache__/
+ml-service/**/__pycache__/
+ml-service/*.pyc
+ml-service/**/*.pyc
+ml-service/.pytest_cache/
+ml-service/.venv/
+ml-service/venv/
+ml-service/env/
+
+# Logs
+*.log
+logs/
+
+# Build / temporary files
+*.tmp
+*.temp
