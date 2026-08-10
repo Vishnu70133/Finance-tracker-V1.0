@@ -2,7 +2,6 @@ package com.vishnu.finance_tracker.service;
 
 import com.vishnu.finance_tracker.model.*;
 import com.vishnu.finance_tracker.repository.*;
-import com.vishnu.finance_tracker.service.TransactionService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -393,5 +392,64 @@ class TransactionServiceTest {
         assertTrue(result.contains("is ₹14,000"));
         assertTrue(result.contains("earned ₹15,000"));
         assertTrue(result.contains("spent ₹1,000"));
+    }
+
+    @Test
+    void testHandleAddTransaction_MissingAmountSavesPendingAction() {
+        com.vishnu.finance_tracker.dto.FinanceQueryDTO query = new com.vishnu.finance_tracker.dto.FinanceQueryDTO();
+        query.setIntent("ADD_TRANSACTION");
+        query.setCategory("Food");
+        query.setType("EXPENSE");
+
+        String result = transactionService.handleAddTransaction(query, "test@gmail.com");
+        assertEquals("Please provide the amount for the transaction.", result);
+        assertNotNull(transactionService.getPendingAction("test@gmail.com"));
+        assertEquals("ADD_TRANSACTION", transactionService.getPendingAction("test@gmail.com").getAction());
+    }
+
+    @Test
+    void testHandleUpdateTransaction_NonexistentSavesCreateOnUpdate() {
+        User user = new User();
+        user.setId(123L);
+        user.setEmail("test@gmail.com");
+
+        Category category = new Category();
+        category.setId(1L);
+        category.setName("Food");
+
+        com.vishnu.finance_tracker.dto.FinanceQueryDTO query = new com.vishnu.finance_tracker.dto.FinanceQueryDTO();
+        query.setIntent("UPDATE_TRANSACTION");
+        query.setCategory("Food");
+        query.setAmount(800.0);
+
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(user);
+        when(categoryRepository.findByNameIgnoreCase("Food")).thenReturn(Optional.of(category));
+        when(transactionRepository.findByUserIdAndDateAndCategoryIdAndDeletedFalse(eq(123L), any(java.time.LocalDate.class), eq(1L)))
+                .thenReturn(java.util.Collections.emptyList());
+
+        String result = transactionService.handleUpdateTransaction(query, "test@gmail.com");
+        assertEquals("No such transaction found. Do you want me to create it instead?", result);
+        assertNotNull(transactionService.getPendingAction("test@gmail.com"));
+        assertEquals("CREATE_ON_UPDATE", transactionService.getPendingAction("test@gmail.com").getAction());
+    }
+
+    @Test
+    void testDetectDescriptionFromText_IgnoreCategoriesAndGenericWords() {
+        assertNull(transactionService.detectDescriptionFromText("Add 500 food"));
+        assertNull(transactionService.detectDescriptionFromText("Add 1000 expense"));
+
+        assertEquals("biryani", transactionService.detectDescriptionFromText("Add 500 for biryani today"));
+        assertEquals("movie ticket", transactionService.detectDescriptionFromText("Add 300 for movie ticket yesterday"));
+    }
+
+    @Test
+    void testDetectCategoryFromText_BiryaniSynonym() {
+        assertEquals("Food", transactionService.detectCategoryFromText("Add 500 for biryani today"));
+        
+        Category foodCategory = new Category();
+        foodCategory.setName("Food");
+        when(categoryRepository.findByNameIgnoreCase("Food")).thenReturn(Optional.of(foodCategory));
+        
+        assertEquals("Food", transactionService.findClosestCategory("biryani").getName());
     }
 }

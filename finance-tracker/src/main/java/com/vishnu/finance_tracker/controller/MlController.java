@@ -1,6 +1,5 @@
 package com.vishnu.finance_tracker.controller;
 
-import com.vishnu.finance_tracker.model.Transaction;
 import com.vishnu.finance_tracker.service.MlService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;

@@ -447,12 +447,17 @@ public String getExpensesSorted(String email, String order) {
     int index = 1;
 
     for (Transaction t : transactions) {
-
+        String desc = t.getDescription() != null && !t.getDescription().trim().isEmpty()
+                ? " (" + t.getDescription().trim() + ")"
+                : "";
         response.append(index)
-                .append("️. ")
+                .append(". ")
                 .append(t.getCategory().getName())
+                .append(desc)
                 .append(" — ₹")
-                .append(t.getAmount())
+                .append(String.format("%.0f", t.getAmount()))
+                .append(" on ")
+                .append(t.getDate())
                 .append("\n");
 
         index++;
@@ -605,12 +610,17 @@ public String filterExpensesByAmount(String email, String comparison, Double amo
     int i = 1;
 
     for(Transaction t : transactions){
-
+        String desc = t.getDescription() != null && !t.getDescription().trim().isEmpty()
+                ? " (" + t.getDescription().trim() + ")"
+                : "";
         response.append(i++)
                 .append(". ")
                 .append(t.getCategory().getName())
+                .append(desc)
                 .append(" — ₹")
-                .append(t.getAmount())
+                .append(String.format("%.0f", t.getAmount()))
+                .append(" on ")
+                .append(t.getDate())
                 .append("\n");
     }
 
@@ -719,6 +729,10 @@ public String getCategoryExpense(String email, String category, String timePerio
 
     User user = userRepository.findByEmail(email);
 
+    if (timePeriod == null && date == null) {
+        timePeriod = "all_time";
+    }
+
     LocalDate[] range = resolveDateRange(timePeriod, date);
 
     LocalDate start = range[0];
@@ -737,7 +751,11 @@ public String getCategoryExpense(String email, String category, String timePerio
         label = "on " + date;
     } else {
         String safeTimePeriod = (timePeriod != null ? timePeriod : "this_month");
-        label = "for " + safeTimePeriod.replace("_", " ");
+        if ("all_time".equalsIgnoreCase(safeTimePeriod)) {
+            label = "in total";
+        } else {
+            label = "for " + safeTimePeriod.replace("_", " ");
+        }
     }
 
     return "You spent ₹"
@@ -882,6 +900,7 @@ public String handleAddTransaction(FinanceQueryDTO query, String email) {
 
     // Validate amount
     if (query.getAmount() == null) {
+        pendingActions.put(email, new PendingAction("ADD_TRANSACTION", query));
         return "Please provide the amount for the transaction.";
     }
 
@@ -1092,16 +1111,32 @@ public String handleUpdateTransaction(FinanceQueryDTO query, String email) {
                     category.getId()
             );
 
+    System.out.println("[AI UPDATE DEBUG] handleUpdateTransaction called: " +
+            "userEmail=" + email +
+            ", resolvedCategoryId=" + category.getId() +
+            ", resolvedCategoryName=" + category.getName() +
+            ", resolvedDate=" + date +
+            ", matchingTransactionsSize=" + transactions.size());
+
     if (transactions.isEmpty()) {
 
-    // store pending action
-    pendingActions.put(email,
-            new PendingAction("ADD_TRANSACTION", query));
+        // store pending action
+        pendingActions.put(email,
+                new PendingAction("CREATE_ON_UPDATE", query));
 
-    return "No such transaction found. Do you want me to create it instead?";
-}
+        return "No such transaction found. Do you want me to create it instead?";
+    }
 
     Transaction transaction = transactions.get(0);
+    double oldAmount = transaction.getAmount();
+    String oldDescription = transaction.getDescription();
+
+    System.out.println("[AI UPDATE DEBUG] Found matching transaction: " +
+            "transactionId=" + transaction.getId() +
+            ", oldAmount=" + oldAmount +
+            ", newAmount=" + query.getAmount() +
+            ", oldDescription=" + oldDescription +
+            ", newDescription=" + query.getDescription());
 
     transaction.setAmount(query.getAmount());
 
@@ -1109,7 +1144,8 @@ public String handleUpdateTransaction(FinanceQueryDTO query, String email) {
         transaction.setDescription(query.getDescription());
     }
 
-    transactionRepository.save(transaction);
+    Transaction saved = transactionRepository.save(transaction);
+    System.out.println("[AI UPDATE DEBUG] transactionRepository.save executed. Saved ID=" + (saved != null ? saved.getId() : "NULL"));
 
     return "Transaction updated successfully.";
 }
@@ -1165,6 +1201,7 @@ private static final Map<String, String> CATEGORY_SYNONYMS = Map.of(
         "cinema", "Entertainment",
         "burger", "Food",
         "restaurant", "Food",
+        "biryani", "Food",
         "hospital", "Health",
         "doctor", "Health",
         "uber", "Transport",
@@ -1174,6 +1211,10 @@ private static final Map<String, String> CATEGORY_SYNONYMS = Map.of(
 
 public PendingAction getPendingAction(String email) {
     return pendingActions.get(email);
+}
+
+public void clearPendingAction(String email) {
+    pendingActions.remove(email);
 }
 
 public Object executePendingAction(String email){
@@ -1201,6 +1242,18 @@ public Object executePendingAction(String email){
                 }
 
                 return handleAddTransaction(query,email);
+
+            case "CREATE_ON_UPDATE":
+
+                if(query.getDescription() == null){
+                    query.setDescription(query.getCategory() + " expense");
+                }
+
+                if(query.getType() == null){
+                    query.setType("EXPENSE");
+                }
+
+                return handleAddTransaction(query, email);
 
             case "UPDATE_PROFILE":
                 return handleExecuteUpdateProfile(query, email);
@@ -1273,6 +1326,7 @@ public String detectCategoryFromText(String question) {
         Map.entry("coffee","Food"),
         Map.entry("lunch","Food"),
         Map.entry("dinner","Food"),
+        Map.entry("biryani","Food"),
 
         Map.entry("movie","Entertainment"),
         Map.entry("netflix","Entertainment"),
@@ -1325,6 +1379,24 @@ public String detectDescriptionFromText(String question) {
     if (cleaned.isEmpty()) {
         return null;
     }
+    String lowerCleaned = cleaned.toLowerCase();
+    
+    // Ignore category database names
+    List<Category> categories = categoryRepository.findAll();
+    for (Category c : categories) {
+        if (c.getName().toLowerCase().equals(lowerCleaned)) {
+            return null;
+        }
+    }
+    
+    // Common generic category names/words
+    Set<String> categoryKeywords = Set.of(
+        "food", "expense", "expenses", "income", "spending", "outflow", "inflow"
+    );
+    if (categoryKeywords.contains(lowerCleaned)) {
+        return null;
+    }
+    
     return cleaned;
 }
 
@@ -1452,6 +1524,12 @@ private LocalDate[] resolveDateRange(String timePeriod, String date) {
         case "last_year":
             start = LocalDate.now().minusYears(1).withDayOfYear(1);
             end = start.withDayOfYear(start.lengthOfYear());
+            break;
+
+        case "all_time":
+        case "all":
+            start = LocalDate.of(1970, 1, 1);
+            end = LocalDate.of(9999, 12, 31);
             break;
 
         default:

@@ -21,8 +21,6 @@ public class AiService {
 private ChatMessageRepository chatMessageRepository;
 
 @Autowired
-private UserRepository userRepository;
-@Autowired
 private ChatSessionRepository chatSessionRepository;
 
     private final ChatClient chatClient;
@@ -65,11 +63,13 @@ Give:
             .content();
 }
 public FinanceQueryDTO interpretFinanceQuery(String question) {
+    String currentDate = java.time.LocalDate.now().toString();
 
-    String result = chatClient
-            .prompt()
-            .system("""
+    String systemPrompt = """
 You are a finance query interpreter.
+
+Current Date: """ + currentDate + """
+
 
 Your task is to convert a user finance question into structured JSON.
 
@@ -89,6 +89,13 @@ SORT_EXPENSES
 HIGHEST_CATEGORY
 LOWEST_CATEGORY
 FILTER_AMOUNT
+TOP_CATEGORIES
+LOWEST_CATEGORIES
+SPENDING_TREND
+ADD_TRANSACTION
+UPDATE_TRANSACTION
+DELETE_TRANSACTION
+ANALYZE_SPENDING
 UPDATE_PROFILE
 GET_PROFILE_NAME
 GET_PROFILE_EMAIL
@@ -97,199 +104,199 @@ GET_PROFILE_EMAIL
 Examples:
 
 User: How much did I spend on food last month?
-{{
+{
  "intent":"CATEGORY_EXPENSE",
  "category":"food",
  "timePeriod":"last_month"
-}}
+}
 
 User: How much I spent on food in last month
-{{
+{
  "intent":"CATEGORY_EXPENSE",
  "category":"food",
  "timePeriod":"last_month"
-}}
+}
 
 User: What was my food expense last month?
-{{
+{
  "intent":"CATEGORY_EXPENSE",
  "category":"food",
  "timePeriod":"last_month"
-}}
+}
 
 User: Which category did I spend the most on last month?
-{{
+{
  "intent":"HIGHEST_CATEGORY",
  "timePeriod":"last_month"
-}}
+}
 
 User: Which category did I spend the most on this year?
-{{
+{
  "intent":"HIGHEST_CATEGORY",
  "timePeriod":"this_year"
-}}
+}
 
 User: Which category did I spend the most this month?
-{{
+{
  "intent":"HIGHEST_CATEGORY",
  "timePeriod":"this_month"
-}}
+}
 
 User: Which category did I spend the most?
-{{
+{
  "intent":"HIGHEST_CATEGORY"
-}}
+}
 
 User: Which category did I spend the least on last month?
-{{
+{
  "intent":"LOWEST_CATEGORY",
  "timePeriod":"last_month"
-}}
+}
 
 User: Which category did I spend the least on this year?
-{{
+{
  "intent":"LOWEST_CATEGORY",
  "timePeriod":"this_year"
-}}
+}
 
 User: Show expenses greater than 1000
-{{
+{
  "intent":"FILTER_AMOUNT",
  "comparison":"GREATER_THAN",
  "amount":1000
-}}
+}
 
 User: Show expenses less than 500
-{{
+{
  "intent":"FILTER_AMOUNT",
  "comparison":"LESS_THAN",
  "amount":500
-}}
+}
 
 User: Show expenses equal to 200
-{{
+{
  "intent":"FILTER_AMOUNT",
  "comparison":"EQUAL",
  "amount":200
-}}
+}
 
 User: Give my expenses in ascending order
-{{
+{
  "intent":"SORT_EXPENSES",
  "order":"ASC"
-}}
+}
 
 User: Give my expenses in descending order
-{{
+{
  "intent":"SORT_EXPENSES",
  "order":"DESC"
-}}
+}
  User: How much did I spend this week?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"this_week"
-}}
+}
 
 User: How much did I spend this month?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"this_month"
-}}
+}
 
 User: How much did I spend this year?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"this_year"
-}}
+}
 
 User: How much did I spend last month?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"last_month"
-}}
+}
  User: How much did I spend yesterday?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"yesterday"
-}}
+}
 
 User: How much did I spend day before yesterday?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"day_before_yesterday"
-}}
+}
 
 User: How much did I spend last week?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"last_week"
-}}
+}
 
 User: How much did I spend last year?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "timePeriod":"last_year"
-}}
+}
 
 User: How much did I spend on Feb 24?
-{{
+{
  "intent":"TOTAL_EXPENSE",
  "date":"2026-02-24"
-}}
+}
  User: What are my top 3 spending categories?
-{{
+{
  "intent":"TOP_CATEGORIES",
  "limit":3
-}}
+}
 
 User: Show my top spending categories
-{{
+{
  "intent":"TOP_CATEGORIES",
  "limit":3
-}}
+}
 
 User: Which categories do I spend the most on?
-{{
+{
  "intent":"TOP_CATEGORIES",
  "limit":3
-}}
+}
 
 User: What are my least spending categories?
-{{
+{
  "intent":"LOWEST_CATEGORIES",
  "limit":3
-}}
+}
  User: What are my top 5 spending categories?
-{{
+{
  "intent":"TOP_CATEGORIES",
  "limit":5
-}}
+}
 
 User: Show my top 10 spending categories
-{{
+{
  "intent":"TOP_CATEGORIES",
  "limit":10
-}}
+}
 
 User: What are my least 3 spending categories?
-{{
+{
  "intent":"LOWEST_CATEGORIES",
  "limit":3
-}}
+}
  User: Did my spending increase compared to last month?
-{{
+{
  "intent":"SPENDING_TREND"
-}}
+}
 
 User: Am I spending more than last month?
-{{
+{
  "intent":"SPENDING_TREND"
-}}
+}
 
 User: Did my expenses increase this month?
-{{
+{
  "intent":"SPENDING_TREND"
-}}
+}
  NEW TRANSACTION INTENTS:
 
 ADD_TRANSACTION
@@ -309,306 +316,312 @@ Rules for transactions:
 Examples:
 
 User: Add an expense of 500 for food today
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
  "description":"food",
  "type":"EXPENSE",
  "date":"today"
-}}
+}
 
 User: Add an expense of ₹500 for cinema today
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"entertainment",
  "description":"cinema",
  "type":"EXPENSE",
  "date":"today"
-}}
+}
 
 User: Add an expense of ₹500 for Biryani today.
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
  "description":"Biryani",
  "type":"EXPENSE",
  "date":"today"
-}}
+}
 
 User: Add ₹300 for Pizza.
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":300,
  "category":"food",
  "description":"Pizza",
  "type":"EXPENSE"
-}}
+}
 
 User: Add an expense of 700 for dinner.
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":700,
  "category":"food",
  "description":"dinner",
  "type":"EXPENSE"
-}}
+}
 
 User: Spend ₹1200 on groceries.
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":1200,
  "category":"groceries",
  "description":"groceries",
  "type":"EXPENSE"
-}}
+}
 
 User: Add ₹500 Food expense for lunch.
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
  "description":"lunch",
  "type":"EXPENSE"
-}}
+}
 
 User: Add 2000 income for salary
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":2000,
  "category":"salary",
  "description":"salary",
  "type":"INCOME"
-}}
+}
 
 User: Add 500 food
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":500,
  "category":"food",
- "description":"food",
+ "description":null,
  "type":"EXPENSE"
-}}
+}
 
 User: Update my food expense yesterday to 800
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"food",
  "amount":800,
  "type":"EXPENSE",
  "date":"yesterday"
-}}
+}
 
 User: Update entertainment expense on Feb 24 to 2000
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"entertainment",
  "amount":2000,
  "type":"EXPENSE",
  "date":"2026-02-24"
-}}
+}
 
 User: Delete my health expense from yesterday
-{{
+{
  "intent":"DELETE_TRANSACTION",
  "category":"health",
  "type":"EXPENSE",
  "date":"yesterday"
-}}
+}
 
 User: Delete food expense on Feb 24
-{{
+{
  "intent":"DELETE_TRANSACTION",
  "category":"food",
  "date":"2026-02-24"
-}}
+}
 
 User: Add 300 entertainment expense yesterday for movie
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":300,
  "category":"entertainment",
  "type":"EXPENSE",
  "description":"movie",
  "date":"yesterday"
-}}
+}
 
 User: Add 2000 salary income today for freelance work
-{{
+{
  "intent":"ADD_TRANSACTION",
  "amount":2000,
  "category":"salary",
  "type":"INCOME",
  "description":"freelance work",
  "date":"today"
-}}
+}
 
 User: Update my food expense yesterday to 800 for lunch
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"food",
  "amount":800,
  "type":"EXPENSE",
  "description":"lunch",
  "date":"yesterday"
-}}
+}
 
 User: Update entertainment expense on Feb 24 to 2000 for movie
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"entertainment",
  "amount":2000,
  "type":"EXPENSE",
  "description":"movie",
  "date":"2026-02-24"
-}}
+}
 
 User: Update my health expense today to 500 for hospital checkup
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"health",
  "amount":500,
  "type":"EXPENSE",
  "description":"hospital checkup",
  "date":"today"
-}}
+}
 
 User: Update my food expense yesterday to 700
-{{
+{
  "intent":"UPDATE_TRANSACTION",
  "category":"food",
  "amount":700,
  "type":"EXPENSE",
  "date":"yesterday"
-}}
+}
  User: Delete my food expense yesterday
-{{
+{
  "intent":"DELETE_TRANSACTION",
  "category":"food",
  "type":"EXPENSE",
  "date":"yesterday"
-}}
+}
  User: Delete entertainment expense on Feb 24
-{{
+{
  "intent":"DELETE_TRANSACTION",
  "category":"entertainment",
  "type":"EXPENSE",
  "date":"2026-02-24"
-}}
+}
  User: Delete my health expense today
-{{
+{
  "intent":"DELETE_TRANSACTION",
  "category":"health",
  "type":"EXPENSE",
  "date":"today"
-}}
+}
  User: Analyze my spending
-{{
+{
  "intent":"ANALYZE_SPENDING"
-}}
+}
 
 User: Change my name to Vishnu Kumar
-{{
+{
  "intent":"UPDATE_PROFILE",
  "profileField":"NAME",
  "newValue":"Vishnu Kumar"
-}}
+}
 
 User: Update my name to Vishnu Das
-{{
+{
  "intent":"UPDATE_PROFILE",
  "profileField":"NAME",
  "newValue":"Vishnu Das"
-}}
+}
 
 User: Change my email to newemail@example.com
-{{
+{
  "intent":"UPDATE_PROFILE",
  "profileField":"EMAIL",
  "newValue":"newemail@example.com"
-}}
+}
 
 User: What is my name?
-{{
+{
  "intent":"GET_PROFILE_NAME"
-}}
+}
 
 User: What's my name?
-{{
+{
  "intent":"GET_PROFILE_NAME"
-}}
+}
 
 User: What is my email?
-{{
+{
  "intent":"GET_PROFILE_EMAIL"
-}}
+}
 
 User: What email is associated with my account?
-{{
+{
  "intent":"GET_PROFILE_EMAIL"
-}}
+}
 
 User: Which email did I register with?
-{{
+{
  "intent":"GET_PROFILE_EMAIL"
-}}
+}
 
 User: Tell me my account email
-{{
+{
  "intent":"GET_PROFILE_EMAIL"
-}}
+}
 
 User: What did I earn today?
-{{
+{
  "intent":"TOTAL_INCOME",
  "timePeriod":"today"
-}}
+}
 
 User: What was my income today?
-{{
+{
  "intent":"TOTAL_INCOME",
  "timePeriod":"today"
-}}
+}
 
 User: How much did I earn this month?
-{{
+{
  "intent":"TOTAL_INCOME",
  "timePeriod":"this_month"
-}}
+}
 
 User: What was my net balance today?
-{{
+{
  "intent":"NET_BALANCE",
  "timePeriod":"today"
-}}
+}
 
 User: What is my net balance this month?
-{{
+{
  "intent":"NET_BALANCE",
  "timePeriod":"this_month"
-}}
+}
 
 User: How much balance do I have left?
-{{
+{
  "intent":"NET_BALANCE"
-}}
+}
 
 User: What did I learn today?
-{{
+{
  "intent":null
-}}
+}
 
 User: How are you doing?
-{{
+{
  "intent":null
-}}
+}
 
 Rules for Ambiguous Queries:
 - Distinguish between "earn" (which maps to TOTAL_INCOME) and "learn" (which is NOT a financial query, and maps to null intent).
 - Queries about non-financial activities, general knowledge, or features not tracked by the application (e.g. learning, fitness, habits) MUST map to intent null.
-""")
+""";
+
+    String escapedPrompt = systemPrompt.replace("{", "\\{").replace("}", "\\}");
+
+    String result = chatClient
+            .prompt()
+            .system(escapedPrompt)
             .user(question)
             .call()
             .content();
@@ -625,7 +638,15 @@ Rules for Ambiguous Queries:
     ObjectMapper mapper = new ObjectMapper();
 
     try {
-        return mapper.readValue(cleanedJson, FinanceQueryDTO.class);
+        FinanceQueryDTO dto = mapper.readValue(cleanedJson, FinanceQueryDTO.class);
+        System.out.println("[AI CHAT] Successfully parsed FinanceQueryDTO: " +
+                           "intent=" + dto.getIntent() +
+                           ", category=" + dto.getCategory() +
+                           ", amount=" + dto.getAmount() +
+                           ", date=" + dto.getDate() +
+                           ", type=" + dto.getType() +
+                           ", description=" + dto.getDescription());
+        return dto;
     } catch (Exception e) {
         throw new RuntimeException("Failed to parse AI response: " + result, e);
     }

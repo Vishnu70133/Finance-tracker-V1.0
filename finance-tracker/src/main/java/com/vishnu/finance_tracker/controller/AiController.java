@@ -179,28 +179,32 @@ public Object queryFinance(@RequestBody Map<String, Object> request) {
     Object response;
 
     /* -------------------------------------------------------
-       STEP 1 CONFIRMATION
-    ------------------------------------------------------- */
-
-    if (question.matches("(?i)yes|ok|okay|sure|confirm|do it")) {
-
-        PendingAction pending = transactionService.getPendingAction(email);
-
-        if (pending != null) {
-
-            response = transactionService.executePendingAction(email);
-
-            saveAiMessage(session, response);
-
-            return response;
-        }
-    }
-
-    /* -------------------------------------------------------
-       STEP 2 PENDING DESCRIPTION
+       PENDING ACTIONS HANDLING (CONFIRMATION & CONTINUATION)
     ------------------------------------------------------- */
 
     PendingAction pending = transactionService.getPendingAction(email);
+
+    if (pending != null) {
+        String cleanedQ = question.trim().toLowerCase();
+        if (cleanedQ.matches("(?i)^(yes|ok|okay|sure|confirm|do it)$")) {
+            response = transactionService.executePendingAction(email);
+            saveAiMessage(session, response);
+            return response;
+        } else if (cleanedQ.matches("(?i)^(no|cancel|stop|dont|don't|do not)$")) {
+            transactionService.clearPendingAction(email);
+            String ans = "Action cancelled.";
+            saveAiMessage(session, ans);
+            return ans;
+        } else {
+            // If they type a new query for confirmation-only actions, cancel the pending action and fall through
+            if ("CREATE_ON_UPDATE".equals(pending.getAction()) || "UPDATE_PROFILE".equals(pending.getAction())) {
+                transactionService.clearPendingAction(email);
+            }
+        }
+    }
+
+    // Now reload pending to see if we can continue a missing-field ADD_TRANSACTION flow
+    pending = transactionService.getPendingAction(email);
 
     if (pending != null && "ADD_TRANSACTION".equals(pending.getAction())) {
 
@@ -249,6 +253,8 @@ public Object queryFinance(@RequestBody Map<String, Object> request) {
     if (isHandledLocally) {
         System.out.println("[AI CHAT] Detected intent locally: " + query.getIntent());
         System.out.println("[AI CHAT] Handled locally/backend: true");
+        
+        transactionService.clearPendingAction(email);
     } else {
         System.out.println("[AI CHAT] Sending query to ML/AI service for interpretation.");
         try {
@@ -261,6 +267,36 @@ public Object queryFinance(@RequestBody Map<String, Object> request) {
             System.out.println("[AI CHAT] Final response: " + ans);
             saveAiMessage(session, ans);
             return ans;
+        }
+
+        if (query != null) {
+            if (query.getIntent() != null) {
+                transactionService.clearPendingAction(email);
+            }
+
+            // Apply deterministic transaction intent overrides
+            lowerQ = question.toLowerCase().trim();
+            boolean hasAdd = lowerQ.matches(".*\\b(add|record|log|create)\\b.*");
+            boolean hasUpdate = lowerQ.matches(".*\\b(update|edit|change)\\b.*");
+            boolean hasDelete = lowerQ.matches(".*\\b(delete|remove)\\b.*");
+            boolean isProfileUpdate = lowerQ.contains("name") || lowerQ.contains("email") || lowerQ.contains("password") || lowerQ.contains("profile");
+
+            if (hasAdd && !isProfileUpdate) {
+                query.setIntent("ADD_TRANSACTION");
+            } else if (hasUpdate && !isProfileUpdate) {
+                query.setIntent("UPDATE_TRANSACTION");
+            } else if (hasDelete && !isProfileUpdate) {
+                query.setIntent("DELETE_TRANSACTION");
+            }
+
+            // Apply deterministic type detection for add transactions
+            if ("ADD_TRANSACTION".equals(query.getIntent()) && query.getType() == null) {
+                if (lowerQ.contains("income") || lowerQ.contains("salary") || lowerQ.contains("earn")) {
+                    query.setType("INCOME");
+                } else {
+                    query.setType("EXPENSE");
+                }
+            }
         }
     }
 
@@ -397,6 +433,14 @@ public Object queryFinance(@RequestBody Map<String, Object> request) {
             break;
 
         case "UPDATE_TRANSACTION":
+            System.out.println("[AI UPDATE DEBUG] AiController about to call handleUpdateTransaction with DTO: " +
+                    "intent=" + query.getIntent() +
+                    ", amount=" + query.getAmount() +
+                    ", category=" + query.getCategory() +
+                    ", type=" + query.getType() +
+                    ", description=" + query.getDescription() +
+                    ", date=" + query.getDate() +
+                    ", timePeriod=" + query.getTimePeriod());
             response = transactionService.handleUpdateTransaction(query, email);
             break;
 
@@ -770,7 +814,13 @@ public ChatSession updateSessionTitle(@PathVariable Long sessionId, @RequestBody
 
     FinanceQueryDTO parseIntentLocally(String question) {
         FinanceQueryDTO query = new FinanceQueryDTO();
-        String lowerQ = question.toLowerCase();
+        String lowerQ = question.toLowerCase().trim();
+
+        // If it contains any command verbs or profile terms or complex search terms, do not handle locally
+        if (lowerQ.matches(".*\\b(add|record|log|create|update|edit|change|delete|remove|top|least|lowest|highest|sort|greater|less|equal|compare|compared|comparison|trend|analyze|advice|predict|forecast|anomaly|anomalies|suspicious|increase|increased|more|higher|than|decrease|decreased)\\b.*")
+            || lowerQ.contains("name") || lowerQ.contains("email") || lowerQ.contains("profile") || lowerQ.contains("password")) {
+            return query; // returns query with intent = null
+        }
 
         // 1. Detect Time Period
         String timePeriod = null;
@@ -813,6 +863,14 @@ public ChatSession updateSessionTitle(@PathVariable Long sessionId, @RequestBody
                 query.setIntent("CATEGORY_EXPENSE");
             } else {
                 query.setIntent("TOTAL_EXPENSE");
+            }
+        }
+
+        // If intent detected locally is a relative query, but no timePeriod is resolved, fallback to LLM
+        if (query.getIntent() != null && query.getTimePeriod() == null) {
+            if ("NET_BALANCE".equals(query.getIntent()) || "TOTAL_INCOME".equals(query.getIntent()) 
+                || "TOTAL_EXPENSE".equals(query.getIntent()) || "CATEGORY_EXPENSE".equals(query.getIntent())) {
+                query.setIntent(null);
             }
         }
 

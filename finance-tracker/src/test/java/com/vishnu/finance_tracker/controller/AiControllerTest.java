@@ -121,4 +121,17 @@ class AiControllerTest {
         assertEquals("HIGHEST_CATEGORY", qE.getIntent());
         assertEquals("this_year", qE.getTimePeriod());
     }
+
+    @Test
+    void testParseIntentLocally_Restrictions() {
+        assertNull(aiController.parseIntentLocally("Add 500 food expense today").getIntent());
+        assertNull(aiController.parseIntentLocally("Update my food expense today to 800").getIntent());
+        assertNull(aiController.parseIntentLocally("Delete my food expense today").getIntent());
+        assertNull(aiController.parseIntentLocally("How much did I spend on August 10?").getIntent());
+        assertNull(aiController.parseIntentLocally("What are my top 3 spending categories?").getIntent());
+        assertNull(aiController.parseIntentLocally("What are my least 3 spending categories?").getIntent());
+        assertNull(aiController.parseIntentLocally("Show my expenses from lowest to highest").getIntent());
+        assertNull(aiController.parseIntentLocally("Show expenses greater than 500").getIntent());
+        assertNull(aiController.parseIntentLocally("Analyze my spending").getIntent());
+    }
 }
