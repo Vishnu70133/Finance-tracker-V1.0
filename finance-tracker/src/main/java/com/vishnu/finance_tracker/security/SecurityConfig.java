@@ -56,9 +56,10 @@ public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSou
             new org.springframework.web.cors.CorsConfiguration();
 
     configuration.setAllowedOrigins(java.util.List.of(
-        "http://localhost:5173",
-        "https://finance-tracker-v1-0.onrender.com"
-    ));
+    "http://localhost:5173",
+    "https://finance-tracker-v1-0.onrender.com",
+    "https://fintrack.devs.surf"
+));
     configuration.setAllowedMethods(java.util.List.of("GET","POST","PUT","DELETE","OPTIONS"));
     configuration.setAllowedHeaders(java.util.List.of("*"));
     configuration.setAllowCredentials(true);
